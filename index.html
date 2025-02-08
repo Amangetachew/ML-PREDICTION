@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Churn Prediction</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9; /* Soft blue background */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff; /* White card background */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #34495e; /* Dark blue heading */
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #2c3e50; /* Dark blue labels */
+            width: 40%; /* Adjust label width for better alignment */
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        input[type="number"], select {
+            width: 50%; /* Adjust input width */
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #2ecc71; /* Green button */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #27ae60; /* Darker green on hover */
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .result.success {
+            color: #27ae60; /* Success message in green */
+        }
+
+        .result.error {
+            color: #e74c3c; /* Error message in red */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Customer Churn Prediction</h1>
+        <form id="churn-form">
+            <div class="form-group">
+                <label for="tenure">Tenure (months):</label>
+                <input type="number" id="tenure" name="tenure" step="0.1" value="10.0">
+            </div>
+            <div class="form-group">
+                <label for="monthly-charges">Monthly Charges ($):</label>
+                <input type="number" id="monthly-charges" name="MonthlyCharges" step="0.1" value="50.0">
+            </div>
+            <div class="form-group">
+                <label for="total-charges">Total Charges ($):</label>
+                <input type="number" id="total-charges" name="TotalCharges" step="0.1" value="500.0">
+            </div>
+            <div class="form-group">
+                <label for="senior-citizen">Senior Citizen:</label>
+                <select id="senior-citizen" name="SeniorCitizen">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="partner">Partner:</label>
+                <select id="partner" name="Partner">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+            <button type="button" onclick="predictChurn()">Predict Churn</button>
+        </form>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        async function predictChurn() {
+            try {
+                // Get form values
+                const tenure = parseFloat(document.getElementById('tenure').value);
+                const monthlyCharges = parseFloat(document.getElementById('monthly-charges').value);
+                const totalCharges = parseFloat(document.getElementById('total-charges').value);
+                const seniorCitizen = parseInt(document.getElementById('senior-citizen').value);
+                const partner = parseInt(document.getElementById('partner').value);
+
+                // Prepare the payload
+                const payload = {
+                    tenure,
+                    MonthlyCharges: monthlyCharges,
+                    TotalCharges: totalCharges,
+                    SeniorCitizen: seniorCitizen,
+                    Partner: partner
+                };
+
+                // Send POST request to the API
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('result');
+
+                if (result.prediction === 0) {
+                    resultDiv.className = "result success";
+                    resultDiv.textContent = `Legitimate Customer! Churn Probability: ${result.churn_probability.toFixed(2)}%`;
+                } else {
+                    resultDiv.className = "result error";
+                    resultDiv.textContent = `Potential Churn Detected! Churn Probability: ${result.churn_probability.toFixed(2)}%`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = "result error";
+                resultDiv.textContent = "An error occurred while processing the request.";
+            }
+        }
+    </script>
+</body>
+</html>
