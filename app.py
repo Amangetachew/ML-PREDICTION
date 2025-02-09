@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
-import traceback  # For detailed error tracing
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -12,11 +12,14 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (replace "*" with specific origins if needed)
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_methods=["*"],  # Allow all methods
     allow_headers=["*"]   # Allow all headers
 )
+
+# Mount the static files directory (for CSS, JS, etc.)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Load the trained model
 try:
@@ -73,7 +76,7 @@ def predict_churn(customer: Customer):
         # Convert to DataFrame
         data = pd.DataFrame([full_feature_set])
 
-        # Debugging: Print the DataFrame
+        # Debugging: Print processed data
         print("Processed Data:\n", data)
 
         # Make predictions using the loaded model
@@ -85,11 +88,8 @@ def predict_churn(customer: Customer):
             "churn_probability": float(probability[0])
         }
     except Exception as e:
-        # Return detailed error message
-        error_message = f"Error processing request: {str(e)}"
-        print(error_message)  # Log the error in the terminal
-        traceback.print_exc()  # Print stack trace for debugging
-        return {"error": error_message}
+        print(f"Error during prediction: {e}")
+        return {"error": str(e)}
 
 # Health check endpoint
 @app.get("/health")
@@ -105,3 +105,8 @@ def read_root(request: Request):
         return HTMLResponse(content=html_content, status_code=200)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="index.html not found")
+
+# Handle favicon requests
+@app.get("/favicon.ico")
+def favicon():
+    return Response(status_code=204)  # Return "No Content" for favicon requests
