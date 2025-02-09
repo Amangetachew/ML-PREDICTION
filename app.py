@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
+import traceback  # For detailed error tracing
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -18,7 +19,12 @@ app.add_middleware(
 )
 
 # Load the trained model
-model = joblib.load('churn_prediction_model.pkl')
+try:
+    model = joblib.load('churn_prediction_model.pkl')
+    print("Model Loaded Successfully!")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    raise HTTPException(status_code=500, detail="Failed to load the model.")
 
 # Define the input data schema
 class Customer(BaseModel):
@@ -34,6 +40,9 @@ def predict_churn(customer: Customer):
     try:
         # Convert input data into a dictionary
         input_data = customer.dict()
+
+        # Debugging: Print received input
+        print("Received Input:", input_data)
 
         # Create a full feature set with default values for missing features
         full_feature_set = {
@@ -64,6 +73,9 @@ def predict_churn(customer: Customer):
         # Convert to DataFrame
         data = pd.DataFrame([full_feature_set])
 
+        # Debugging: Print the DataFrame
+        print("Processed Data:\n", data)
+
         # Make predictions using the loaded model
         prediction = model.predict(data)
         probability = model.predict_proba(data)[:, 1]
@@ -73,7 +85,11 @@ def predict_churn(customer: Customer):
             "churn_probability": float(probability[0])
         }
     except Exception as e:
-        return {"error": str(e)}
+        # Return detailed error message
+        error_message = f"Error processing request: {str(e)}"
+        print(error_message)  # Log the error in the terminal
+        traceback.print_exc()  # Print stack trace for debugging
+        return {"error": error_message}
 
 # Health check endpoint
 @app.get("/health")
@@ -83,7 +99,6 @@ def health_check():
 # Serve the HTML file at the root URL
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
-    # Read and return the index.html file
     try:
         with open("index.html", "r") as file:
             html_content = file.read()

@@ -139,12 +139,12 @@
 
                 // Prepare the payload
                 const payload = {
-                    tenure,
-                    MonthlyCharges: monthlyCharges,
-                    TotalCharges: totalCharges,
-                    SeniorCitizen: seniorCitizen,
-                    Partner: partner
-                };
+    tenure: parseFloat(document.getElementById('tenure').value),
+    MonthlyCharges: parseFloat(document.getElementById('monthly-charges').value),
+    TotalCharges: parseFloat(document.getElementById('total-charges').value),
+    SeniorCitizen: parseInt(document.getElementById('senior-citizen').value),
+    Partner: parseInt(document.getElementById('partner').value)
+};
 
                 // Send POST request to the API
                 const response = await fetch('http://127.0.0.1:8000/predict', {
