@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
-from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -19,13 +20,13 @@ app.add_middleware(
 # Load the trained model
 model = joblib.load('churn_prediction_model.pkl')
 
-# Define the input data schema with 5 features
+# Define the input data schema
 class Customer(BaseModel):
-    tenure: float  # Customer tenure in months
-    MonthlyCharges: float  # Monthly charges paid by the customer
-    TotalCharges: float  # Total charges paid by the customer
-    SeniorCitizen: int  # 0 for No, 1 for Yes
-    Partner: int  # 0 for No, 1 for Yes
+    tenure: float
+    MonthlyCharges: float
+    TotalCharges: float
+    SeniorCitizen: int
+    Partner: int
 
 # Prediction endpoint
 @app.post("/predict")
@@ -78,3 +79,14 @@ def predict_churn(customer: Customer):
 @app.get("/health")
 def health_check():
     return {"status": "OK"}
+
+# Serve the HTML file at the root URL
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request):
+    # Read and return the index.html file
+    try:
+        with open("index.html", "r") as file:
+            html_content = file.read()
+        return HTMLResponse(content=html_content, status_code=200)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="index.html not found")
